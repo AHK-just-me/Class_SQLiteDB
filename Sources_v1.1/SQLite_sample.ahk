@@ -1,44 +1,32 @@
-;=======================================================================================================================
-; Script Function:  Sample script for SQLite.ahk
-; AHK Version:      L 1.0.97.02 (U 32)
+; ======================================================================================================================
+; Script Function:  Sample script for Class_SQLiteDB.ahk
+; AHK Version:      L 1.1.00.00 (U 32)
 ; Language:         English
 ; Tested on:        Win XPSP3, Win VistaSP2 (32 Bit)
 ; Author:           ich_L
-; Version:          0.0.00.01/2011-05-01/ich_L
-; Remarks:          As suggested by andricOn on
-;                   http://www.autohotkey.com/forum/post-329350.html#329350
-;=======================================================================================================================
+; Version:          0.0.00.02/2011-05-14/ich_L
+; ======================================================================================================================
 ; AHK Settings
-;=======================================================================================================================
+; ======================================================================================================================
 #NoEnv
+; #Warn
 #SingleInstance force
 SetWorkingDir, %A_ScriptDir%
 SetBatchLines, -1
-;=======================================================================================================================
+OnExit, GuiClose
+; ======================================================================================================================
 ; Includes
-;=======================================================================================================================
-#Include *i SQLite_L.ahk
-;=======================================================================================================================
-; Start
-;=======================================================================================================================
+; ======================================================================================================================
+#Include Class_SQLiteDB.ahk
+; ======================================================================================================================
+; Start & GUI
+; ======================================================================================================================
 CBBSQL := "SELECT * FROM Test"
 DBFileName := A_ScriptDir . "\TEST.DB"
-CSVFileName := A_ScriptDir . "\TEST.CSV"
 Title := "SQL Query/Command ListView Function GUI"
 If FileExist(DBFileName) {
    SB_SetText("Deleting " . DBFileName)
    FileDelete, %DBFileName%
-}
-If FileExist(CSVFileName) {
-   SB_SetText("Deleting " . CSVFileName)
-   FileDelete, %CSVFileName%
-}
-Loop, 500 {
-   FileAppend,
-   (LTrim Join
-      Näme%A_Index%%A_Tab%Fname%A_Index%%A_Tab%
-      Phöne%A_Index%%A_Tab%Room%A_Index%`n
-   ),%CSVFileName%, UTF-8-RAW
 }
 Gui, +LastFound +OwnDialogs +Disabled
 Gui, Margin, 10, 10
@@ -49,243 +37,145 @@ GuiControl, Move, TX, h%PH%
 Gui, Add, Button, ym w80 hp vRun gRunSQL Default, Run
 Gui, Add, Text, xm h20 w100 0x200, Table name:
 Gui, Add, Edit, x+0 yp w150 hp vTable, Test
-Gui, Add, Button, Section x+10 yp wp hp gGetTable, SQLite_GetTable
-Gui, Add, Button, x+10 yp wp hp gFetchData, SQLite_FetchData
-Gui, Add, GroupBox, xm w780 h330 , Results
+Gui, Add, Button, Section x+10 yp wp hp gGetTable, Get _Table
+Gui, Add, Button, x+10 yp wp hp gGetRecordSet, Get _RecordSet
+Gui, Add, GroupBox, xm w780 h330, Results
 Gui, Add, ListView, xp+10 yp+18 w760 h300 vResultsLV,
 Gui, Add, StatusBar,
 Gui, Show, , %Title%
-;=======================================================================================================================
-; Use SQLITE3.DLL - Initialize and get lib version
-;=======================================================================================================================
-SB_SetText("SQLite_StartUp")
-If !SQLite_Startup() {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0,  ERROR from STARTUP, %Msg%
+; ======================================================================================================================
+; Use Class SQLiteDB : Initialize and get lib version
+; ======================================================================================================================
+SB_SetText("SQLiteDB new")
+DB := new SQLiteDB
+Sleep, 1000
+SB_SetText("Version")
+Version := DB.Version
+WinSetTitle, %Title% - SQLite3.dll v %Version%
+Sleep, 1000
+; ======================================================================================================================
+; Use Class SQLiteDB : Open/Create database and table
+; ======================================================================================================================
+SB_SetText("OpenDB")
+If !DB.OpenDB(DBFileName) {
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
    ExitApp
 }
 Sleep, 1000
-SB_SetText("SQLite_LibVersion")
-Version := SQLite_LibVersion()
-WinSetTitle, %Title% - SQLite3.dll v %Version%
-Sleep, 1000
-;=======================================================================================================================
-; Use SQLITE3.EXE - Create database and table
-;=======================================================================================================================
-; Commands =
-; (Ltrim
-;    CREATE TABLE Test (Name, Fname, Phone, Room, PRIMARY KEY(Name ASC, FName ASC));
-;    .separator \t
-;    .import '%CSVFileName%' Test
-; )
-; Output := ""
-; SB_SetText("SQLite3exe: Creating database and table test importing 500 records")
-; Sleep, 1000
-; Start := A_TickCount
-; If !SQLite_SQLiteExe(DBFileName, Commands, Output) {
-;    Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-;    MsgBox, 0, ERROR from SQLITEEXE, %Msg%`n`n%Output%
-;    ExitApp
-; }
-; SB_SetText("SQLite3exe: Done in " . (A_TickCount - Start) . " ms")
-; Sleep, 1000
-;=======================================================================================================================
-; Use SQLITE3.DLL - Open/Create database and table
-;=======================================================================================================================
-If !(hDB := SQLite_OpenDB(DBFileName)) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from OPENDB, %Msg%
-}
+SB_SetText("Exec: CREATE TABLE")
 SQL := "CREATE TABLE Test (Name, Fname, Phone, Room, PRIMARY KEY(Name ASC, FName ASC));"
-SB_SetText("SQLite_Exec: CREATE TABLE")
-If !SQLite_Exec(hDB, SQL) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from EXEC, %Msg%
-}
-SB_SetText("SQLite_Exec: INSERT 1000 rows")
+If !DB.Exec(SQL)
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+Sleep, 1000
+SB_SetText("Exec: INSERT 1000 rows")
 Start := A_TickCount
-SQL := "BEGIN TRANSACTION;"
-SQLite_Exec(hDB, SQL)
-_SQL := "INSERT INTO Test VALUES('Name#', 'Fname#', 'Phone#', 'Room#');"
-I := 501
+DB.Exec("BEGIN TRANSACTION;")
+SQLStr := ""
+_SQL := "INSERT INTO Test VALUES('Näme#', 'Fname#', 'Phone#', 'Room#');"
 Loop, 1000 {
-   StringReplace, SQL, _SQL, #, %I%, All
-   If !SQLite_Exec(hDB, SQL) {
-      Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-      MsgBox, 0, ERROR from EXEC, %Msg%
-   }
-   I++
+   StringReplace, SQL, _SQL, #, %A_Index%, All
+   SQLStr .= SQL
 }
-SQL := "COMMIT TRANSACTION;"
-SQLite_Exec(hDB, SQL)
-SB_SetText("INSERT 1000 rows: Done in " . (A_TickCount - Start) . " ms")
+If !DB.Exec(SQLStr)
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+DB.Exec("COMMIT TRANSACTION;")
+SQLStr := ""
+SB_SetText("Exec: INSERT 1000 rows done in " . (A_TickCount - Start) . " ms")
 Sleep, 1000
-;=======================================================================================================================
-; Use SQLITE3.DLL - Query the Database
-;=======================================================================================================================
-SB_SetText("SQLite_LastInsertRowID")
-Names := Result := ""
-If !SQLite_LastInsertRowID(hDB, RowID) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from LASTINSERTROWID, %Msg%
-}
-Names := ["Last inserted RowID"]
-Result := [RowID]
-GoSub, ShowResult
-Sleep, 1000
+; ======================================================================================================================
+; Use Class SQLiteDB : Using Exec() with callback function
+; ======================================================================================================================
+SB_SetText("Exec: Using a callback function")
 SQL := "SELECT COUNT(*) FROM Test;"
-Names := Result := ""
-Rows := Cols := 0
-SB_SetText("SQLite_GetTable : " . SQL)
-If !SQLite_GetTable(hDB, SQL, Rows, Cols, Names, Result) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from GETTABLE, %Msg%
-}
-GoSub, ShowResult
-Sleep, 1000
-;=======================================================================================================================
-; Start of query using SQLite_Query()
-;=======================================================================================================================
-SQL := "SELECT * FROM Test;"
-SB_SetText("SQLite_Query : " . SQL)
-If !(hQuery := SQLite_Query(hDB, SQL)) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from QUERY, %Msg%
-}
-Names := Result := ""
-SB_SetText("SQLite_FetchNames")
-If !SQLite_FetchNames(hQuery, Names) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from FETCHNAMES, %Msg%
-}
-Result := Names.Clone()
-Names := ""
-Names := ["Column Names"]
-GoSub, ShowResult
-Sleep, 1000
-Names := Result
-Result := ""
-Result := Array()
-Rows := 0
-Loop {
-   SB_SetText("SQLite_FetchData " . A_Index)
-   If !(RC := SQLite_FetchData(hQuery, Data)) {
-      Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-      MsgBox, 0, ERROR from FETCHDATA, %Msg%
-      Break
-   }
-   If (RC = -1)
-      Break
-   Result[A_Index] := Data
-   Rows++
-}
-Gosub, ShowResult
-SB_SetText("SQLite_QueryFinalize")
-If !SQLite_QueryFinalize(hQuery) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from FINALIZE, %Msg%
-}
-;=======================================================================================================================
-; End of query using SQLite_Query()
-;=======================================================================================================================
-Gui, -Disabled
-Return
-;=======================================================================================================================
-; Gui Subs
-;=======================================================================================================================
-GuiClose:
-GuiEscape:
-SB_SetText("SQLite_CloseDB")
-If !SQLite_CloseDB(hDB) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from CLOSEDB, %$Msg%
-}
-SB_SetText("SQLite_ShutDown")
-If !SQLite_ShutDown() {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from SHUTDOWN, %Msg%
-}
-Gui, Destroy
-ExitApp
-;=======================================================================================================================
-; Other Subs
-;=======================================================================================================================
-;=======================================================================================================================
-; "One step" query using SQLite_GetTableClass()
-;=======================================================================================================================
-GetTable:
-Gui, Submit, NoHide
-Result := ""
-SQL := "SELECT * FROM " . Table . ";"
-SB_SetText("SQLite_GetTable : SELECT * FROM " . Table)
-Start := A_TickCount
-If !SQLite_GetTableClass(hDB, SQL, Result) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from GETTABLE, %Msg%
-}
-SB_SetText("SQLite_GetTable done in " . (A_TickCount - Start) . " ms")
+DB.Exec(SQL, "SQLiteExecCallBack")
+; ======================================================================================================================
+; Use Class SQLiteDB : Get some informations
+; ======================================================================================================================
+SB_SetText("LastInsertRowID")
+If !DB.LastInsertRowID(RowID)
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
 GuiControl, -ReDraw, ResultsLV
 LV_Delete()
 ColCount := LV_GetCount("Column")
 Loop, %ColCount%
    LV_DeleteCol(1)
-If (Result.HasNames) {
-   Loop, % Result.ColumnCount
-      LV_InsertCol(A_Index,"", Result.ColumnNames[A_Index])
-   If (Result.HasRows) {
-      Loop, % Result.RowCount {
-         RowCount := LV_Add("", "")
-         Row := Result.NextRow()
-         Loop, % Result.ColumnCount
-            LV_Modify(RowCount, "Col" . A_Index, Row[A_Index])
-      }
-   }
-   Loop, % Result.ColumnCount
-      LV_ModifyCol(A_Index, "AutoHdr")
-}
+LV_InsertCol(1,"", "LastInsertedRowID")
+LV_Add("", RowID)
 GuiControl, +ReDraw, ResultsLV
+Sleep, 1000
+SQL := "SELECT COUNT(*) FROM Test;"
+SB_SetText("SQLite_GetTable : " . SQL)
+Result := ""
+If !DB.GetTable(SQL, Result)
+   MsgBox, 16, SQLite Error: GetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+ShowTable(Result)
+Sleep, 1000
+; ======================================================================================================================
+; Start of query using Query() : Get the column names for table Test
+; ======================================================================================================================
+SQL := "SELECT * FROM Test;"
+SB_SetText("Query : " . SQL)
+If !DB.Query(SQL, RecordSet)
+   MsgBox, 16, SQLite Error: Query, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+GuiControl, -ReDraw, ResultsLV
+LV_Delete()
+ColCount := LV_GetCount("Column")
+Loop, %ColCount%
+   LV_DeleteCol(1)
+LV_InsertCol(1,"", "Column names")
+Loop, % RecordSet.ColumnCount
+   LV_Add("", RecordSet.ColumnNames[A_Index])
+LV_ModifyCol(1, "AutoHdr")
+RecordSet.Free()
+GuiControl, +ReDraw, ResultsLV
+; ======================================================================================================================
+; End of query using Query()
+; ======================================================================================================================
+Gui, -Disabled
 Return
-;=======================================================================================================================
-; Show results for prepared query using SQLite_FetchData
-;=======================================================================================================================
-FetchData:
+; ======================================================================================================================
+; Gui Subs
+; ======================================================================================================================
+GuiClose:
+GuiEscape:
+If !DB.CloseDB()
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+Gui, Destroy
+ExitApp
+; ======================================================================================================================
+; Other Subs
+; ======================================================================================================================
+; "One step" query using GetTable()
+; ======================================================================================================================
+GetTable:
+Gui, Submit, NoHide
+Result := ""
+SQL := "SELECT * FROM " . Table . ";"
+SB_SetText("GetTable: " . SQL)
+Start := A_TickCount
+If !DB.GetTable(SQL, Result)
+   MsgBox, 16, SQLite Error, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+SB_SetText("GetTable: " . SQL . " done in " . (A_TickCount - Start) . " ms")
+ShowTable(Result)
+Return
+; ======================================================================================================================
+; Show results for prepared query using Query()
+; ======================================================================================================================
+GetRecordSet:
 Gui, Submit, NoHide
 SQL := "SELECT * FROM " . Table . ";"
-SB_SetText("SQLite_Query : " . SQL)
+SB_SetText("Query: " . SQL)
+RecordSet := ""
 Start := A_TickCount
-If !(hQuery := SQLite_Query(hDB, SQL)) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from QUERY, %Msg%
-}
-Names := Result := Data := ""
-SB_SetText("SQLite_FetchNames")
-If !SQLite_FetchNames(hQuery, Names) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from FETCHNAMES, %Msg%
-}
-SB_SetText("SQLite_FetchData")
-Result := Array()
-Loop, {
-   If !(RC := SQLite_FetchData(hQuery, Data)) {
-      Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-      MsgBox, 0, ERROR from FETCHDATA, %Msg%
-      Break
-   }
-   If (RC = -1)
-      Break
-   Result[A_Index] := Data
-}
-SB_SetText("SQLite_QueryFinalize")
-If !SQLite_QueryFinalize(hQuery) {
-   Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-   MsgBox, 0, ERROR from FINALIZE, %Msg%
-}
-SB_SetText("SQLite_FetchData done in " . (A_TickCount - Start) . " ms")
-GoSub, ShowResult
+If !DB.Query(SQL, RecordSet)
+   MsgBox, 16, SQLite Error: Query, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+ShowRecordSet(RecordSet)
+RecordSet.Free()
+SB_SetText("Query: " . SQL . " done in " . (A_TickCount - Start) . " ms")
 Return
-;=======================================================================================================================
-; Execute SQL-Statement
-;=======================================================================================================================
+; ======================================================================================================================
+; Execute SQL statement using Exec() / GetTable()
+; ======================================================================================================================
 RunSQL:
 Gui, +OwnDialogs
 GuiControlGet, SQL
@@ -298,46 +188,92 @@ If !InStr("`n" . CBBSQL . "`n", "`n" . SQL . "`n") {
    GuiControl, , SQL, %SQL%
    CBBSQL .= "`n" . SQL
 }
-SQL := SQL . ";"
-Names := Result := ""
-Rows := Cols := 0
+If (SubStr(SQL, 0) <> ";")
+   SQL .= ";"
+Result := ""
 If RegExMatch(SQL, "i)^\s*SELECT\s") {
-   SB_SetText("SQLite_GetTable : " . SQL)
-   If !SQLite_GetTable(hDB, SQL, Rows, Cols, Names, Result) {
-      Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-      MsgBox, 0, ERROR from GETTABLE, %Msg%
-   }
+   SB_SetText("GetTable: " . SQL)
+   If !DB.GetTable(SQL, Result)
+      MsgBox, 16, SQLite Error: GetTable, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+   Else
+      ShowTable(Result)
+   SB_SetText("GetTable: " . SQL . " done!")
 } Else {
-   SB_SetText("SQLite_Exec: " . SQL)
-   If !SQLite_Exec(hDB, SQL) {
-      Msg := "ErrorLevel: " . ErrorLevel . "`n" . SQLite_LastError()
-      MsgBox, 0, ERROR from EXEC, %Msg%
-   }
+   SB_SetText("Exec: " . SQL)
+   If !DB.Exec(SQL)
+      MsgBox, 16, SQLite Error: Exec, % "Msg:`t" . DB.ErrorMsg . "`nCode:`t" . DB.ErrorCode
+   Else
+      SB_SetText("Exec: " . SQL . " done!")
 }
-GoSub, ShowResult
 Return
-;=======================================================================================================================
-; Show result
-;=======================================================================================================================
-ShowResult:
-GuiControl, -ReDraw, ResultsLV
-LV_Delete()
-ColCount := LV_GetCount("Column")
-Loop, %ColCount%
-   LV_DeleteCol(1)
-For I In Names
-   LV_InsertCol(A_Index,"", Names[I])
-ColCount := I
-For I In Result {
-   RowCount := LV_Add("", "")
-   If IsObject(Result[I]) {
-      For J In Result[I]
-         LV_Modify(RowCount, "Col" . J, Result[I][J])
-   } Else {
-      LV_Modify(RowCount, "Col1", Result[I])
-   }
+; ======================================================================================================================
+; Exec() callback function sample
+; ======================================================================================================================
+SQLiteExecCallBack(DB, ColumnCount, ColumnValues, ColumnNames) {
+   This := Object(DB)
+   MsgBox, 0, %A_ThisFunc%
+      , % "SQLite version: " . This.Version . "`n"
+      . "SQL statement: " . StrGet(A_EventInfo) . "`n"
+      . "Number of columns: " . ColumnCount . "`n" 
+      . "Name of first column: " . StrGet(NumGet(ColumnNames + 0, "UInt"), "UTF-8") . "`n" 
+      . "Value of first column: " . StrGet(NumGet(ColumnValues + 0, "UInt"), "UTF-8")
+   Return 0
 }
-Loop, %ColCount%
-   LV_ModifyCol(A_Index, "AutoHdr")
-GuiControl, +ReDraw, ResultsLV
-Return
+; ======================================================================================================================
+; Show results
+; ======================================================================================================================
+ShowTable(Table) {
+   Global
+   Local ColCount, RowCount, Row
+   GuiControl, -ReDraw, ResultsLV
+   LV_Delete()
+   ColCount := LV_GetCount("Column")
+   Loop, %ColCount%
+      LV_DeleteCol(1)
+   If (Table.HasNames) {
+      Loop, % Table.ColumnCount
+         LV_InsertCol(A_Index,"", Table.ColumnNames[A_Index])
+      If (Table.HasRows) {
+         Loop, % Table.RowCount {
+            RowCount := LV_Add("", "")
+            Table.Next(Row)
+            Loop, % Table.ColumnCount
+               LV_Modify(RowCount, "Col" . A_Index, Row[A_Index])
+         }
+      }
+      Loop, % Table.ColumnCount
+         LV_ModifyCol(A_Index, "AutoHdr")
+   }
+   GuiControl, +ReDraw, ResultsLV
+}
+; ----------------------------------------------------------------------------------------------------------------------
+ShowRecordSet(RecordSet) {
+   Global
+   Local ColCount, RowCount, Row, RC
+   GuiControl, -ReDraw, ResultsLV
+   LV_Delete()
+   ColCount := LV_GetCount("Column")
+   Loop, %ColCount%
+      LV_DeleteCol(1)
+   If (RecordSet.HasNames) {
+      Loop, % RecordSet.ColumnCount
+         LV_InsertCol(A_Index,"", RecordSet.ColumnNames[A_Index])
+   }
+   If (RecordSet.HasRows) {
+      If (RecordSet.Next(Row) < 1) {
+         MsgBox, 16, %A_ThisFunc%, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+         Return
+      }
+      Loop {
+         RowCount := LV_Add("", "")
+         Loop, % RecordSet.ColumnCount
+            LV_Modify(RowCount, "Col" . A_Index, Row[A_Index])
+            RC := RecordSet.Next(Row)
+      } Until (RC < 1)
+   }
+   If (RC = 0)
+      MsgBox, 16, %A_ThisFunc%, % "Msg:`t" . RecordSet.ErrorMsg . "`nCode:`t" . RecordSet.ErrorCode
+   Loop, % RecordSet.ColumnCount
+      LV_ModifyCol(A_Index, "AutoHdr")
+   GuiControl, +ReDraw, ResultsLV
+}
