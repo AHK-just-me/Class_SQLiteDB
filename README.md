@@ -4,10 +4,6 @@
 
 AHK class providing support to access SQLite databases.
 
-The repo contains two versions of the class and sample scripts:
-
-1. **Sources_v1.1** for the current AHK 1.1 version
-2. **Sources_v2** for the upcoming AHK v2 version.
 
 ### Additional stuff ###
 
