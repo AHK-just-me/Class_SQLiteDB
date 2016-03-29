@@ -8,6 +8,7 @@
 ;                   0.0.04.00/2013-06-29/just me   -  Added new methods AttachDB and DetachDB
 ;                   0.0.05.00/2013-08-03/just me   -  Changed base class assignment
 ;                   0.0.06.00/2016-01-28/just me   -  Fixed version check, revised parameter initialization.
+;                   0.0.07.00/2016-03-28/just me   -  Added support for PRAGMA statements.
 ; Remarks:          Names of "private" properties / methods are prefixed with an underscore,
 ;                   they must not be set / called by the script!
 ;                   
@@ -310,10 +311,10 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
    ; ===================================================================================================================
    ; PRIVATE _StrToUTF8
    ; ===================================================================================================================
-   _StrToUTF8(Str) {
+   _StrToUTF8(Str, ByRef UTF8) {
       VarSetCapacity(UTF8, StrPut(Str, "UTF-8"), 0)
       StrPut(Str, &UTF8, "UTF-8")
-      Return UTF8
+      Return &UTF8
    }
    ; ===================================================================================================================
    ; PRIVATE _UTF8ToStr
@@ -425,7 +426,7 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
             Flags |= SQLITE_OPEN_CREATE
       }
       This._Path := DBPath
-      UTF8 := This._StrToUTF8(DBPath)
+      This._StrToUTF8(DBPath, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_open_v2", "Ptr", &UTF8, "PtrP", HDB, "Int", Flags, "Ptr", 0, "Cdecl Int")
       If (ErrorLevel) {
          This._Path := ""
@@ -522,7 +523,7 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
       Err := 0
       If (FO := Func(Callback)) && (FO.MinParams = 4)
          CBPtr := RegisterCallback(Callback, "F C", 4, &SQL)
-      UTF8 := This._StrToUTF8(SQL)
+      This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_exec", "Ptr", This._Handle, "Ptr", &UTF8, "Int", CBPtr, "Ptr", Object(This)
                   , "PtrP", Err, "Cdecl Int")
       CallError := ErrorLevel
@@ -563,8 +564,8 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
          This.ErrorMsg := "Invalid dadabase handle!"
          Return False
       }
-      If !RegExMatch(SQL, "i)^\s*SELECT\s") {
-         This.ErrorMsg := "Method " . A_ThisFunc . " requires a SELECT-Statement!"
+      If !RegExMatch(SQL, "i)^\s*(SELECT|PRAGMA)\s") {
+         This.ErrorMsg := "Method " . A_ThisFunc . " requires a query statement!"
          Return False
       }
       Names := ""
@@ -575,7 +576,7 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
          MaxResult := 0
       If (MaxResult < -2)
          MaxResult := 0
-      UTF8 := This._StrToUTF8(SQL)
+      This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_get_table", "Ptr", This._Handle, "Ptr", &UTF8, "PtrP", Table
                   , "IntP", Rows, "IntP", Cols, "PtrP", Err, "Cdecl Int")
       If (ErrorLevel) {
@@ -652,12 +653,12 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
          This.ErrorMsg := "Invalid dadabase handle!"
          Return False
       }
-      If !RegExMatch(SQL, "i)^\s*SELECT\s") {
-         This.ErrorMsg := "Method " . A_ThisFunc . " requires a SELECT statement!"
+      If !RegExMatch(SQL, "i)^\s*(SELECT|PRAGMA)\s|") {
+         This.ErrorMsg := "Method " . A_ThisFunc . " requires a query statement!"
          Return False
       }
       Query := 0
-      UTF8 := This._StrToUTF8(SQL)
+      This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
                   , "PtrP", Query, "Ptr", 0, "Cdecl Int")
       If (ErrorLeveL) {
@@ -812,8 +813,7 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
       If Str Is Number
          Return True
       OP := Quote ? "%Q" : "%q"
-      OP := This._StrToUTF8(OP)
-      UTF8 := This._StrToUTF8(Str)
+      This._StrToUTF8(Str, UTF8)
       Ptr := DllCall("SQLite3.dll\sqlite3_mprintf", "Ptr", &OP, "Ptr", &UTF8, "Cdecl UPtr")
       If (ErrorLevel) {
          This.ErrorMsg := "DLLCall sqlite3_mprintf failed!"
@@ -851,7 +851,7 @@ Class SQLiteDB Extends SQLiteDB.BaseClass {
          Return False
       }
       Query := 0
-      UTF8 := This._StrToUTF8(SQL)
+      This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
                   , "PtrP", Query, "Ptr", 0, "Cdecl Int")
       If (ErrorLeveL) {
