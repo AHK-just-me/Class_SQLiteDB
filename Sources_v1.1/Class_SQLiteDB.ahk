@@ -1,7 +1,7 @@
 ﻿; ======================================================================================================================
 ; Function:         Class definitions as wrappers for SQLite3.dll to work with SQLite DBs.
-; AHK version:      1.1.33.09
-; Tested on:        Win 10 Pro (x64), SQLite 3.11.1
+; AHK version:      1.1.23.01
+; Tested on:        Win 10 Pro (x64), SQLite 3.7.13
 ; Version:          0.0.01.00/2011-08-10/just me
 ;                   0.0.02.00/2012-08-10/just me   -  Added basic BLOB support
 ;                   0.0.03.00/2012-08-11/just me   -  Added more advanced BLOB support
@@ -12,7 +12,6 @@
 ;                   0.0.08.00/2019-03-09/just me   -  Added basic support for application-defined functions
 ;                   0.0.09.00/2019-07-09/just me   -  Added basic support for prepared statements, minor bug fixes
 ;                   0.0.10.00/2019-12-12/just me   -  Fixed bug in EscapeStr method
-;                   0.0.11.00/2021-10-10/just me   -  Removed statement checks in GetTable, Prepare, and Query
 ; Remarks:          Names of "private" properties / methods are prefixed with an underscore,
 ;                   they must not be set / called by the script!
 ;                   
@@ -812,6 +811,10 @@ Class SQLiteDB {
          This.ErrorMsg := "Invalid database handle!"
          Return False
       }
+      If !RegExMatch(SQL, "i)^\s*(SELECT|PRAGMA)\s") {
+         This.ErrorMsg := A_ThisFunc . " requires a query statement!"
+         Return False
+      }
       Names := ""
       Err := 0, RC := 0, GetRows := 0
       I := 0, Rows := Cols := 0
@@ -903,6 +906,10 @@ Class SQLiteDB {
          This.ErrorMsg := "Invalid database handle!"
          Return False
       }
+      If !RegExMatch(SQL, "i)^\s*(INSERT|UPDATE|REPLACE)\s") {
+         This.ErrorMsg := A_ThisFunc . " requires an INSERT/UPDATE/REPLACE statement!"
+         Return False
+      }
       Stmt := 0
       This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
@@ -940,6 +947,10 @@ Class SQLiteDB {
       HasRows := False
       If !(This._Handle) {
          This.ErrorMsg := "Invalid dadabase handle!"
+         Return False
+      }
+      If !RegExMatch(SQL, "i)^\s*(SELECT|PRAGMA)\s|") {
+         This.ErrorMsg := A_ThisFunc . " requires a query statement!"
          Return False
       }
       Query := 0
