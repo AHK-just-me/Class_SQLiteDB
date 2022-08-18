@@ -281,7 +281,7 @@ Class SQLiteDB {
    ; 2. Bind values to parameters using the PST.Bind_*() methods of the statement object.
    ; 3. Run the SQL by calling PST.Step() one or more times.
    ; 4. Reset the prepared statement using PTS.Reset() then go back to step 2. Do this zero or more times.
-   ; 5. Destroy the object using PST.Finalize().
+   ; 5. Destroy the object using PST.Free().
    ; The lifetime of a prepared statement depends on the lifetime of the related SQLiteDB object.
    ; ===================================================================================================================
    Class _Statement {
@@ -398,7 +398,7 @@ Class SQLiteDB {
          }
          Else If (Type = "Text") { ; -----------------------------------------------------------------------------------
             ; Param3 = zero-terminated string
-            This._DB._StrToUTF8(Param3, ByRef UTF8)
+            This._DB._StrToUTF8(Param3, UTF8)
             ; Let SQLite always create a copy of the text
             RC := DllCall("SQlite3.dll\sqlite3_bind_text", "Ptr", This._Handle, "Int", Index, "Ptr", &UTF8
                         , "Int", -1, "Ptr", -1, "Cdecl Int")
@@ -645,7 +645,7 @@ Class SQLiteDB {
    ; Return values:        On success  - True
    ;                       On failure  - False, ErrorMsg / ErrorCode contain additional information
    ; Remarks:              If DBPath is empty in write mode, a database called ":memory:" is created in memory
-   ;                       and deletet on call of CloseDB.
+   ;                       and deleted on call of CloseDB.
    ; ===================================================================================================================
    OpenDB(DBPath, Access := "W", Create := True) {
       Static SQLITE_OPEN_READONLY  := 0x01 ; Database opened as read-only
