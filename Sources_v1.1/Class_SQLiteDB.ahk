@@ -13,6 +13,7 @@
 ;                   0.0.09.00/2019-07-09/just me   -  Added basic support for prepared statements, minor bug fixes
 ;                   0.0.10.00/2019-12-12/just me   -  Fixed bug in EscapeStr method
 ;                   0.0.11.00/2021-10-10/just me   -  Removed statement checks in GetTable, Prepare, and Query
+;                   0.0.12.00/2022-09-18/just me   -  Fixed bug for Bind - type text
 ; Remarks:          Names of "private" properties / methods are prefixed with an underscore,
 ;                   they must not be set / called by the script!
 ;                   
@@ -398,7 +399,7 @@ Class SQLiteDB {
          }
          Else If (Type = "Text") { ; -----------------------------------------------------------------------------------
             ; Param3 = zero-terminated string
-            This._DB._StrToUTF8(Param3, ByRef UTF8)
+            This._DB._StrToUTF8(Param3, UTF8)
             ; Let SQLite always create a copy of the text
             RC := DllCall("SQlite3.dll\sqlite3_bind_text", "Ptr", This._Handle, "Int", Index, "Ptr", &UTF8
                         , "Int", -1, "Ptr", -1, "Cdecl Int")
