@@ -15,9 +15,10 @@
 ;                   0.0.11.00/2021-10-10/just me   -  Removed statement checks in GetTable, Prepare, and Query
 ;                   0.0.12.00/2022-09-18/just me   -  Fixed bug for Bind - type text
 ;                   0.0.13.00/2022-10-03/just me   -  Fixed bug in Prepare
+;                   0.0.14.00/2022-10-04/just me   -  Changed DllCall parameter type PtrP to UPtrP
 ; Remarks:          Names of "private" properties / methods are prefixed with an underscore,
 ;                   they must not be set / called by the script!
-;                   
+;
 ;                   SQLite3.dll file is assumed to be in the script's folder, otherwise you have to
 ;                   provide an INI-File SQLiteDB.ini in the script's folder containing the path:
 ;                   [Main]
@@ -54,7 +55,7 @@ Class SQLiteDB {
       ; ----------------------------------------------------------------------------------------------------------------
       __New() {
           This.ColumnCount := 0          ; Number of columns in the result table         (Integer)
-          This.RowCount := 0             ; Number of rows in the result table            (Integer)     
+          This.RowCount := 0             ; Number of rows in the result table            (Integer)
           This.ColumnNames := []         ; Names of columns in the result table          (Array)
           This.Rows := []                ; Rows of the result table                      (Array of Arrays)
           This.HasNames := False         ; Does var ColumnNames contain names?           (Bool)
@@ -105,7 +106,7 @@ Class SQLiteDB {
          This._CurrentRow := 0
          Return True
       }
-   }  
+   }
    ; ===================================================================================================================
    ; CLASS _RecordSet
    ; Object returned from method Query()
@@ -635,7 +636,7 @@ Class SQLiteDB {
    ; ===================================================================================================================
    ; Properties
    ; ===================================================================================================================
-    ErrorMsg := ""              ; Error message                           (String) 
+    ErrorMsg := ""              ; Error message                           (String)
     ErrorCode := 0              ; SQLite error code / ErrorLevel          (Variant)
     Changes := 0                ; Changes made by last call of Exec()     (Integer)
     SQL := ""                   ; Last executed SQL statement             (String)
@@ -677,7 +678,7 @@ Class SQLiteDB {
       }
       This._Path := DBPath
       This._StrToUTF8(DBPath, UTF8)
-      RC := DllCall("SQlite3.dll\sqlite3_open_v2", "Ptr", &UTF8, "PtrP", HDB, "Int", Flags, "Ptr", 0, "Cdecl Int")
+      RC := DllCall("SQlite3.dll\sqlite3_open_v2", "Ptr", &UTF8, "UPtrP", HDB, "Int", Flags, "Ptr", 0, "Cdecl Int")
       If (ErrorLevel) {
          This._Path := ""
          This.ErrorMsg := "DLLCall sqlite3_open_v2 failed!"
@@ -757,7 +758,7 @@ Class SQLiteDB {
    ;                                     The address of the current SQL string is passed in A_EventInfo.
    ;                                     If the callback function returns non-zero, DB.Exec() returns SQLITE_ABORT
    ;                                     without invoking the callback again and without running any subsequent
-   ;                                     SQL statements.  
+   ;                                     SQL statements.
    ; Return values:        On success  - True, the number of changed rows is given in property Changes
    ;                       On failure  - False, ErrorMsg / ErrorCode contain additional information
    ; ===================================================================================================================
@@ -775,7 +776,7 @@ Class SQLiteDB {
          CBPtr := RegisterCallback(Callback, "F C", 4, &SQL)
       This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_exec", "Ptr", This._Handle, "Ptr", &UTF8, "Int", CBPtr, "Ptr", Object(This)
-                  , "PtrP", Err, "Cdecl Int")
+                  , "UPtrP", Err, "Cdecl Int")
       CallError := ErrorLevel
       If (CBPtr)
          DllCall("Kernel32.dll\GlobalFree", "Ptr", CBPtr)
@@ -823,8 +824,8 @@ Class SQLiteDB {
       If (MaxResult < -2)
          MaxResult := 0
       This._StrToUTF8(SQL, UTF8)
-      RC := DllCall("SQlite3.dll\sqlite3_get_table", "Ptr", This._Handle, "Ptr", &UTF8, "PtrP", Table
-                  , "IntP", Rows, "IntP", Cols, "PtrP", Err, "Cdecl Int")
+      RC := DllCall("SQlite3.dll\sqlite3_get_table", "Ptr", This._Handle, "Ptr", &UTF8, "UPtrP", Table
+                  , "IntP", Rows, "IntP", Cols, "UPtrP", Err, "Cdecl Int")
       If (ErrorLevel) {
          This.ErrorMsg := "DLLCall sqlite3_get_table failed!"
          This.ErrorCode := ErrorLevel
@@ -908,7 +909,7 @@ Class SQLiteDB {
       Stmt := 0
       This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
-                  , "PtrP", Stmt, "Ptr", 0, "Cdecl Int")
+                  , "UPtrP", Stmt, "Ptr", 0, "Cdecl Int")
       If (ErrorLeveL) {
          This.ErrorMsg := A_ThisFunc . ": DllCall sqlite3_prepare_v2 failed!"
          This.ErrorCode := ErrorLevel
@@ -947,7 +948,7 @@ Class SQLiteDB {
       Query := 0
       This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
-                  , "PtrP", Query, "Ptr", 0, "Cdecl Int")
+                  , "UPtrP", Query, "Ptr", 0, "Cdecl Int")
       If (ErrorLeveL) {
          This.ErrorMsg := "DLLCall sqlite3_prepare_v2 failed!"
          This.ErrorCode := ErrorLevel
@@ -1176,7 +1177,7 @@ Class SQLiteDB {
       Query := 0
       This._StrToUTF8(SQL, UTF8)
       RC := DllCall("SQlite3.dll\sqlite3_prepare_v2", "Ptr", This._Handle, "Ptr", &UTF8, "Int", -1
-                  , "PtrP", Query, "Ptr", 0, "Cdecl Int")
+                  , "UPtrP", Query, "Ptr", 0, "Cdecl Int")
       If (ErrorLeveL) {
          This.ErrorMsg := A_ThisFunc . ": DllCall sqlite3_prepare_v2 failed!"
          This.ErrorCode := ErrorLevel
