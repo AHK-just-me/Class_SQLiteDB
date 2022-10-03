@@ -14,6 +14,7 @@
 ;                   0.0.10.00/2019-12-12/just me   -  Fixed bug in EscapeStr method
 ;                   0.0.11.00/2021-10-10/just me   -  Removed statement checks in GetTable, Prepare, and Query
 ;                   0.0.12.00/2022-09-18/just me   -  Fixed bug for Bind - type text
+;                   0.0.13.00/2022-10-03/just me   -  Fixed bug in Prepare
 ; Remarks:          Names of "private" properties / methods are prefixed with an underscore,
 ;                   they must not be set / called by the script!
 ;                   
@@ -918,8 +919,8 @@ Class SQLiteDB {
          This.ErrorCode := RC
          Return False
       }
-		ST := New This._Statement
-      ST.ParamCount := DllCall("SQlite3.dll\sqlite3_bind_parameter_count", "Ptr", This._Handle, "Cdecl Int")
+      ST := New This._Statement
+      ST.ParamCount := DllCall("SQlite3.dll\sqlite3_bind_parameter_count", "Ptr", Stmt, "Cdecl Int")
       ST._Handle := Stmt
       ST._DB := This
       This._Stmts[Stmt] := Stmt
